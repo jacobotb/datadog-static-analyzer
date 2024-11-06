@@ -8,7 +8,7 @@ use crate::model::analysis::{
     FileIgnoreBehavior, LinesToIgnore, ERROR_RULE_EXECUTION, ERROR_RULE_TIMEOUT,
 };
 use crate::model::common::Language;
-use crate::model::rule::{RuleCategory, RuleInternal, RuleResult, RuleSeverity};
+use crate::model::rule::{Rule, RuleCategory, RuleInternal, RuleResult, RuleSeverity};
 use crate::rule_config::RuleConfig;
 use common::analysis_options::AnalysisOptions;
 use std::borrow::Borrow;
@@ -135,6 +135,53 @@ fn get_lines_to_ignore(code: &str, language: &Language) -> LinesToIgnore {
     }
 }
 
+pub trait AnalysisEngine {
+    fn analyze<I>(
+        &self,
+        language: &Language,
+        rules: I,
+        filename: &Arc<str>,
+        code: &Arc<str>,
+        rule_config: &RuleConfig,
+        analysis_option: &AnalysisOptions,
+    ) -> anyhow::Result<Vec<RuleResult>>
+    where
+        I: IntoIterator,
+        I::Item: Borrow<Rule>;
+}
+
+pub struct LocalAnalysisEngine {}
+
+impl AnalysisEngine for LocalAnalysisEngine {
+    fn analyze<I>(
+        &self,
+        language: &Language,
+        rules: I,
+        filename: &Arc<str>,
+        code: &Arc<str>,
+        rule_config: &RuleConfig,
+        analysis_option: &AnalysisOptions,
+    ) -> anyhow::Result<Vec<RuleResult>>
+    where
+        I: IntoIterator,
+        I::Item: Borrow<Rule>,
+    {
+        let rules_internal = rules
+            .into_iter()
+            .map(|r| r.borrow().to_rule_internal())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(analyze(
+            language,
+            &rules_internal,
+            filename,
+            code,
+            rule_config,
+            analysis_option,
+        ))
+    }
+}
+
 // main function
 // 1. Build the context (tree-sitter tree, etc)
 // 2. Run the tree-sitter query and build the object that hold the match
@@ -165,7 +212,7 @@ where
     })
 }
 
-pub fn analyze_with<I>(
+fn analyze_with<I>(
     runtime: &mut JsRuntime,
     language: &Language,
     rules: I,

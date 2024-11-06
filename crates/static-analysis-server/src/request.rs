@@ -215,6 +215,8 @@ pub fn process_analysis_request(request: AnalysisRequest) -> AnalysisResponse {
             execution_error: rr.execution_error.clone(),
             output: rr.output.clone(),
             execution_time_ms: rr.execution_time_ms,
+            parsing_time_ms: rr.parsing_time_ms,
+            query_node_time_ms: rr.query_node_time_ms,
         })
         .collect();
 

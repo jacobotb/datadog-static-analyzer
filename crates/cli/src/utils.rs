@@ -1,4 +1,3 @@
-use crate::constants::DEFAULT_MAX_CPUS;
 use crate::model::cli_configuration::CliConfiguration;
 use crate::rule_utils::get_languages_for_rules;
 use kernel::constants::{CARGO_VERSION, VERSION};
@@ -6,19 +5,17 @@ use kernel::model::common::OutputFormat;
 use kernel::model::config_file::ConfigMethod;
 
 /// Returns the user's requested core count, clamped to the number of logical cores on the system.
-/// If unspecified, up to [DEFAULT_MAX_CPUS] CPUs will be used.
-pub fn choose_cpu_count(user_input: Option<usize>) -> usize {
+pub fn choose_cpu_count(user_input: usize) -> usize {
     let logical_cores = num_cpus::get();
-    let cores = user_input.unwrap_or(DEFAULT_MAX_CPUS);
-    usize::min(logical_cores, cores)
+    usize::min(logical_cores, user_input)
 }
 
 /// return the number of threads we should be using. The [ideal_threads] is that we can ideally
 /// use but the [num_threads] is the value to use.
-pub fn get_num_threads_to_use(configuration: &CliConfiguration) -> usize {
+pub fn get_num_threads_to_use(num_cpus: usize) -> usize {
     // we always keep one thread free and some room for the management threads that monitor
     // the rule execution.
-    let ideal_threads = ((configuration.num_cpus as f32 - 1.0) * 0.90) as usize;
+    let ideal_threads = ((num_cpus as f32 - 1.0) * 0.90) as usize;
     if ideal_threads == 0 {
         1
     } else {
@@ -58,7 +55,8 @@ pub fn print_configuration(configuration: &CliConfiguration) {
     println!("revision               : {}", VERSION);
     println!("config method          : {}", configuration_method);
     println!("cores available        : {}", num_cpus::get());
-    println!("cores used             : {}", configuration.num_cpus);
+    println!("cores requested        : {}", configuration.num_cpus);
+    println!("threads used           : {}", configuration.num_threads);
     println!("#static analysis rules : {}", configuration.rules.len());
 
     if configuration.secrets_enabled {

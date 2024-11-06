@@ -243,7 +243,7 @@ fn main() -> Result<()> {
 
     // if there is a configuration file, we load the rules from it. But it means
     // we cannot have the rule parameter given.
-    if let Some(conf) = configuration_file {
+    if let Some(conf) = configuration_file.clone() {
         ignore_gitignore = conf.ignore_gitignore.unwrap_or(false);
 
         let rulesets = conf.rulesets.keys().cloned().collect_vec();
@@ -301,11 +301,16 @@ fn main() -> Result<()> {
         })
         .transpose()?;
     // Select the number of cores to use based on the user's CLI arg (or lack of one)
-    let num_cpus = choose_cpu_count(num_cores_requested);
+    let num_cpus = num_cores_requested.unwrap_or(DEFAULT_MAX_CPUS);
+    let num_threads = get_num_threads_to_use(choose_cpu_count(num_cpus));
 
     // build the configuration object that contains how the CLI should behave.
     let configuration = CliConfiguration {
         use_debug,
+        debug_java_dfa: false,
+        should_verify_checksum,
+        diff_aware_requested: false,
+        configuration_file,
         configuration_method,
         ignore_gitignore,
         source_directory: directory_to_analyze.clone(),
@@ -314,12 +319,16 @@ fn main() -> Result<()> {
         rules_file: None,
         output_format: Json,
         num_cpus,
+        num_threads,
         rules: rules.clone(),
         rule_config_provider,
         output_file: "".to_string(),
         max_file_size_kb,
         use_staging,
         show_performance_statistics: false,
+        print_violations: false,
+        fail_any_violation_severities: vec![],
+        add_git_info: false,
         ignore_generated_files,
         secrets_enabled,
         secrets_rules: secrets_rules.clone(),
@@ -341,8 +350,6 @@ fn main() -> Result<()> {
             exit(1)
         }
     }
-
-    let num_threads = get_num_threads_to_use(&configuration);
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)

@@ -3,18 +3,22 @@ use anyhow::anyhow;
 use common::model::diff_aware::DiffAware;
 use git2::Repository;
 use kernel::model::common::OutputFormat;
-use kernel::model::config_file::{ConfigMethod, PathConfig};
+use kernel::model::config_file::{ConfigFile, ConfigMethod, PathConfig};
 use kernel::rule_config::RuleConfigProvider;
 use sha2::{Digest, Sha256};
 
 use crate::model::datadog_api::DiffAwareRequestArguments;
-use kernel::model::rule::Rule;
+use kernel::model::rule::{Rule, RuleSeverity};
 use secrets::model::secret_rule::SecretRule;
 
 /// represents the CLI configuration
 #[derive(Clone)]
 pub struct CliConfiguration {
     pub use_debug: bool,
+    pub debug_java_dfa: bool,
+    pub should_verify_checksum: bool,
+    pub diff_aware_requested: bool,
+    pub configuration_file: Option<ConfigFile>,
     pub configuration_method: Option<ConfigMethod>,
     pub ignore_gitignore: bool,
     pub source_directory: String,
@@ -23,12 +27,16 @@ pub struct CliConfiguration {
     pub rules_file: Option<String>,
     pub output_format: OutputFormat, // SARIF or JSON
     pub output_file: String,
-    pub num_cpus: usize, // of cpus to use for parallelism
+    pub num_cpus: usize,    // specified by the user
+    pub num_threads: usize, // to use for parallelism
     pub rules: Vec<Rule>,
     pub rule_config_provider: RuleConfigProvider,
     pub max_file_size_kb: u64,
     pub use_staging: bool,
     pub show_performance_statistics: bool,
+    pub print_violations: bool,
+    pub fail_any_violation_severities: Vec<RuleSeverity>,
+    pub add_git_info: bool,
     pub ignore_generated_files: bool,
     pub secrets_enabled: bool,
     pub secrets_rules: Vec<SecretRule>,
@@ -142,6 +150,10 @@ mod tests {
     fn test_generate_diff_aware_hash() {
         let cli_configuration = CliConfiguration {
             use_debug: true,
+            debug_java_dfa: false,
+            should_verify_checksum: false,
+            diff_aware_requested: false,
+            configuration_file: None,
             configuration_method: None,
             ignore_gitignore: true,
             source_directory: "bla".to_string(),
@@ -151,6 +163,7 @@ mod tests {
             output_format: Sarif, // SARIF or JSON
             output_file: "foo".to_string(),
             num_cpus: 2, // of cpus to use for parallelism
+            num_threads: 0,
             rules: vec![Rule {
                 name: "myrule".to_string(),
                 short_description_base64: Some("bla".to_string()),
@@ -173,6 +186,9 @@ mod tests {
             max_file_size_kb: 1,
             use_staging: false,
             show_performance_statistics: false,
+            print_violations: false,
+            fail_any_violation_severities: vec![],
+            add_git_info: false,
             ignore_generated_files: false,
             secrets_enabled: false,
             secrets_rules: vec![],
@@ -203,6 +219,10 @@ mod tests {
 
         let cli_configuration_base = CliConfiguration {
             use_debug: true,
+            debug_java_dfa: false,
+            should_verify_checksum: false,
+            diff_aware_requested: false,
+            configuration_file: None,
             configuration_method: None,
             ignore_gitignore: true,
             source_directory: "bla".to_string(),
@@ -212,11 +232,15 @@ mod tests {
             output_format: Sarif, // SARIF or JSON
             output_file: "foo".to_string(),
             num_cpus: 2, // of cpus to use for parallelism
+            num_threads: 0,
             rules: vec![],
             rule_config_provider: Default::default(),
             max_file_size_kb: 1,
             use_staging: false,
             show_performance_statistics: false,
+            print_violations: false,
+            fail_any_violation_severities: vec![],
+            add_git_info: false,
             ignore_generated_files: false,
             secrets_enabled: false,
             secrets_rules: vec![],

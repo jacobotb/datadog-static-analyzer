@@ -18,6 +18,9 @@ name = "datadog-export-rulesets"
 [[bin]]
 name = "datadog-static-analyzer-server"
 
+[[bin]]
+name = "datadog-static-analyzer-client"
+
 [dev-dependencies.cargo-husky]
 version = "1"
 default-features = false # Disable features which are enabled by default
@@ -30,7 +33,6 @@ features = [
 
 [features]
 default = []
-
 
 [dependencies]
 # local
@@ -49,6 +51,7 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 indexmap = { workspace = true }
 num_cpus = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_yaml = { workspace = true }
 tree-sitter = { workspace = true }

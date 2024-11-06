@@ -534,6 +534,10 @@ mod tests {
         files1.push(d);
         let cli_configuration = CliConfiguration {
             use_debug: true,
+            debug_java_dfa: false,
+            should_verify_checksum: false,
+            diff_aware_requested: false,
+            configuration_file: None,
             configuration_method: None,
             ignore_gitignore: true,
             source_directory: "bla".to_string(),
@@ -543,11 +547,15 @@ mod tests {
             output_format: Sarif, // SARIF or JSON
             output_file: "foo".to_string(),
             num_cpus: 2, // of cpus to use for parallelism
+            num_threads: 2,
             rules: vec![],
             rule_config_provider: RuleConfigProvider::default(),
             max_file_size_kb: 1,
             use_staging: false,
             show_performance_statistics: false,
+            print_violations: false,
+            fail_any_violation_severities: vec![],
+            add_git_info: false,
             ignore_generated_files: false,
             secrets_enabled: false,
             secrets_rules: vec![],

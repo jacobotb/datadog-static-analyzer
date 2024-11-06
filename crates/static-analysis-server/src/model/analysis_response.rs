@@ -9,6 +9,8 @@ pub struct RuleResponse {
     pub execution_error: Option<String>,
     pub output: Option<String>,
     pub execution_time_ms: u128,
+    pub parsing_time_ms: u128,
+    pub query_node_time_ms: u128,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
